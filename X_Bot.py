@@ -18,14 +18,26 @@ with sync_playwright() as p:
 
     page = context.new_page()
 
-    page.goto("https://twitter.com/i/flow/login")
+    page.goto("https://twitter.com/compose/tweet")
 
-    page.fill("input[name='text']", USERNAME)
+    if "login" in page.url:
+        page.fill("input[name='text']", USERNAME)
 
-    page.click("span:has-text('Next')")
+        page.click("span:has-text('Next')")
 
-    page.wait_for_selector("input[name='password']").fill(PASSWORD)
+        page.wait_for_selector("input[name='password']").fill(PASSWORD)
 
-    page.click("span:has-text('Log in')")
+        page.click("span:has-text('Log in')")
+
+    def post_tweet(file_path):
+        if not os.path.exists(file_path):
+            print(f"The file {file_path} does not exist.")
+        else:
+            page.set_input_files("input[data-testid='fileInput']", file_path)
+            sleep(2)
+            page.click("span:has-text('Post')")
+        
+    post_tweet("/Users/kianmhz/Downloads/abol1.jpeg")
 
     sleep(200)
+    
