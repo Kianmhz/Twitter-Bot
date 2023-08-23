@@ -2,8 +2,9 @@ from playwright.sync_api import sync_playwright
 import os
 from time import sleep
 import requests
-from random import choice
+from random import choice, randint
 from dotenv import load_dotenv
+import re
 
 load_dotenv()
 
@@ -13,7 +14,7 @@ PASSWORD = os.getenv('MY_PASSWORD')  # replace with your environment variable fo
 
 with sync_playwright() as p:
     context = p.chromium.launch_persistent_context(
-        user_data_dir="/Users/kianmhz/Library/Application Support/Google/Chrome/Profile 2",
+        user_data_dir="C:\\Users\\kianm\\AppData\\Local\\Google\\Chrome\\User Data\\Profile 5",  # replace with your own profile path
         headless=False,
     )
 
@@ -38,17 +39,18 @@ with sync_playwright() as p:
             sleep(2)
             page.click("span:has-text('Post')")
 
-    def dataset():
-        page.goto('https://t.me/meme/756')
-        sleep(5)
-        link_element = page.wait_for_selector('xpath=/html/body/div/div[2]/a[2]')
-        print(link_element)
-        image_style = link_element.get_attribute('style')
-        image_url = image_style.split("url('")[1].split("')")[0]
+    def fetchPost():
+        # Will pick random posts from the source and downloads it
+        page.goto(f'https://t.me/meme/{randint(200, 800)}?embed=1&mode=tme')  # replace with your own source
+        linkElement = page.wait_for_selector('a.tgme_widget_message_photo_wrap')  
+        imageStyle = linkElement.get_attribute('style')  
+        regexPattern = r"background-image:url\('(.*)'\)"  # regex pattern to extract the image url
+        match = re.search(regexPattern, imageStyle)
 
-        response = requests.get(image_url)
+        # Download the image
+        response = requests.get(match.group(1))
         if response.status_code == 200:
-            with open('image.jpg', 'wb') as file:
+            with open('image.jpg', 'wb') as file:  
                 file.write(response.content)
         else:
             print('Failed to download the image')
@@ -56,39 +58,13 @@ with sync_playwright() as p:
 
     def follow_process():
         # Will randomly pick one of these below sources and then follow their n last followers
-        follow_id_list = ["@dillondanis"]  # Replace with your list of usernames
+        follow_id_list = ["username1"]  # Replace with your list of usernames
         random_number = choice(range(len(follow_id_list)))
 
         # Open a new page
         page.goto(f"https://twitter.com/{follow_id_list[random_number]}/followers")
-        sleep(30)
 
-        # Start following
-        acc = 1
-        followed = 0
-        errors = 0
-
-        try:
-            page.click(f'/html/body/div/div/div/div[2]/main/div/div/div/div[1]/div/div[2]/section/div/div/div[{acc}]/div/div/div/div[2]/div[1]/div[2]/div')
-        except:
-            pass
-
-        while followed != 20:
-            try:
-                sleep(1)
-                acc += 1
-                page.wait_for_selector(f'/html/body/div/div/div/div[2]/main/div/div/div/div[1]/div/div[2]/section/div/div/div[{acc-2}]/div/div/div/div[2]/div[1]/div[2]/div')
-                page.click(f'/html/body/div/div/div/div[2]/main/div/div/div/div[1]/div/div[2]/section/div/div/div[{acc}]/div/div/div/div[2]/div[1]/div[2]/div')
-                followed += 1
-            except:
-                errors += 1
-                if errors >= 8:
-                    break
-                if page.is_visible('/html/body/div/div/div/div[1]/div[2]/div/div/div/div/div/div[2]/div[2]/div[3]/div[1]'):
-                    page.click('/html/body/div/div/div/div[1]/div[2]/div/div/div/div/div/div[2]/div[2]/div[3]/div[1]')
-                    sleep(4)
-
-    follow_process()    
+    fetchPost()
 
     sleep(200)
     
