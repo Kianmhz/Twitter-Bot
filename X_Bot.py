@@ -2,7 +2,7 @@ from playwright.sync_api import sync_playwright
 import os
 from time import sleep
 import requests
-from random import choice, randint
+from random import choice, randint, uniform
 from dotenv import load_dotenv
 import re
 
@@ -22,21 +22,26 @@ with sync_playwright() as p:
 
     page.goto("https://twitter.com/compose/tweet")
 
+    # Check if need to login
     if "login" in page.url:
         page.fill("input[name='text']", USERNAME)
+        sleep(uniform(2, 5))
 
         page.click("span:has-text('Next')")
+        sleep(uniform(2, 5))
 
         page.wait_for_selector("input[name='password']").fill(PASSWORD)
+        sleep(uniform(2, 5))
 
         page.click("span:has-text('Log in')")
 
     def post_tweet(file_path):
+        # Will post a tweet with the given file path
         if not os.path.exists(file_path):
             print(f"The file {file_path} does not exist.")
         else:
             page.set_input_files("input[data-testid='fileInput']", file_path)
-            sleep(2)
+            sleep(uniform(2, 5))
             page.click("span:has-text('Post')")
 
     def fetchPost():
@@ -56,15 +61,25 @@ with sync_playwright() as p:
             print('Failed to download the image')
 
 
-    def follow_process():
+    def follow():
         # Will randomly pick one of these below sources and then follow their n last followers
         follow_id_list = ["username1"]  # Replace with your list of usernames
         random_number = choice(range(len(follow_id_list)))
 
-        # Open a new page
         page.goto(f"https://twitter.com/{follow_id_list[random_number]}/followers")
+        sleep(uniform(10, 15))
 
-    fetchPost()
+        # Get all the follow buttons
+        follow_buttons = page.query_selector_all("div[role='button'][aria-label^='Follow @']")
+        num_to_follow = randint(1, 15)
 
-    sleep(200)
-    
+        # Follow random number of accounts
+        for button in range(num_to_follow):
+            follow_buttons[button].click()
+            sleep(uniform(2, 5))
+
+        print(f"Followed {num_to_follow} accounts.")
+
+    follow()
+
+    sleep(5)
