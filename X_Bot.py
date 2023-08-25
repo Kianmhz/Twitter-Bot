@@ -1,6 +1,6 @@
 from playwright.sync_api import sync_playwright
 import os
-from time import sleep
+from time import sleep, time
 import requests
 from random import choice, randint, uniform
 from dotenv import load_dotenv
@@ -46,19 +46,38 @@ with sync_playwright() as p:
 
     def fetchPost():
         # Will pick random posts from the source and downloads it
-        page.goto(f'https://t.me/meme/{randint(200, 800)}?embed=1&mode=tme')  # replace with your own source
-        linkElement = page.wait_for_selector('a.tgme_widget_message_photo_wrap')  
-        imageStyle = linkElement.get_attribute('style')  
-        regexPattern = r"background-image:url\('(.*)'\)"  # regex pattern to extract the image url
-        match = re.search(regexPattern, imageStyle)
+        page.goto(f'https://t.me/shitpost/{randint(45000,60000)}?embed=1&mode=tme')  # replace with your own source
+        sleep(uniform(2, 5))
 
-        # Download the image
-        response = requests.get(match.group(1))
-        if response.status_code == 200:
-            with open('image.jpg', 'wb') as file:  
-                file.write(response.content)
-        else:
-            print('Failed to download the image')
+        picElement = page.query_selector('a.tgme_widget_message_photo_wrap')
+        if picElement:
+            imageStyle = picElement.get_attribute('style')  
+            regexPattern = r"background-image:url\('(.*)'\)"  # Regex pattern to extract the image URL
+            match = re.search(regexPattern, imageStyle)
+
+            if match:
+                # Download the image
+                response = requests.get(match.group(1))
+                if response.status_code == 200:
+                    with open('image.jpg', 'wb') as file:  
+                        file.write(response.content)
+                else:
+                    print('Failed to download the image')
+            return
+
+        # If no image, check for a video
+        videoElement = page.query_selector('video.tgme_widget_message_video.js-message_video')
+        if videoElement:
+            videoURL = videoElement.get_attribute('src')
+
+            if videoURL:
+                # Download the video
+                response = requests.get(videoURL)
+                if response.status_code == 200:
+                    with open('video.mp4', 'wb') as file:
+                        file.write(response.content)
+                else:
+                    print('Failed to download the video')
 
 
     def follow():
@@ -80,6 +99,4 @@ with sync_playwright() as p:
 
         print(f"Followed {num_to_follow} accounts.")
 
-    follow()
 
-    sleep(5)
