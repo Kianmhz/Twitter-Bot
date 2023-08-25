@@ -35,6 +35,7 @@ with sync_playwright() as p:
 
         page.click("span:has-text('Log in')")
 
+
     def post_tweet(file_path):
         # Will post a tweet with the given file path
         if not os.path.exists(file_path):
@@ -43,6 +44,7 @@ with sync_playwright() as p:
             page.set_input_files("input[data-testid='fileInput']", file_path)
             sleep(uniform(2, 5))
             page.click("span:has-text('Post')")
+
 
     def fetchPost():
         # Will pick random posts from the source and downloads it
@@ -98,5 +100,26 @@ with sync_playwright() as p:
             sleep(uniform(2, 5))
 
         print(f"Followed {num_to_follow} accounts.")
+
+    
+    def unfollow():
+        # Will unfollow random number of accounts to avoid hitting the follow limit
+        page.goto("https://twitter.com/username/following")
+        sleep(uniform(10, 15))
+
+        # Get all the follow buttons
+        unfollow_buttons = page.query_selector_all("div[role='button'][aria-label^='Following @']")
+        num_to_unfollow = randint(30, 70)
+
+         # Follow random number of accounts
+        for button in range(num_to_unfollow):
+            unfollow_buttons[button].click()
+            sleep(uniform(1, 2))
+            page.wait_for_selector("div[role='button'] span:has-text('Unfollow')").click()
+            sleep(uniform(2, 5))
+
+        print(f"Followed {num_to_unfollow} accounts.")
+
+    unfollow()
 
 
