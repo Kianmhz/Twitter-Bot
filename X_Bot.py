@@ -61,12 +61,23 @@ with sync_playwright() as p:
 
     def fetchPost():
         # Number of attempts to fetch a post
-        max_attempts = 3
+        max_attempts = 10
         attempts = 0
+
+        # List of sources to fetch posts from, replace with your list of sources
+        sources = [
+            ("https://t.me/Radicalshitposting/", (44000, 47000)),
+            ("https://t.me/BictorsShitpost/", (39000, 42000)),
+            ("https://t.me/shitpost/", (53000, 56000))
+        ]
+
 
         while attempts < max_attempts:
             try:
-                page.goto(f'https://t.me/shitpost/{randint(54000,60000)}?embed=1&mode=tme')  # replace with your own source
+                source, randint_range = choice(sources)
+                url = f"{source}{randint(*randint_range)}?embed=1&mode=tme"
+
+                page.goto(url)
                 sleep(uniform(5, 10))
 
                 # Check for image
