@@ -1,5 +1,6 @@
 from playwright.sync_api import sync_playwright
 import os
+import json
 from time import sleep, time
 import requests
 from random import choice, randint, uniform
@@ -30,6 +31,11 @@ with sync_playwright() as p:
         user_data_dir=PROFILE_PATH,
         headless=False,
     )
+
+    if os.path.exists('cookies.json'):
+        with open('cookies.json', 'r') as file:
+            cookies = json.load(file)
+            context.add_cookies(cookies)
 
     page = context.new_page()
 
@@ -66,9 +72,9 @@ with sync_playwright() as p:
 
         # List of sources to fetch posts from, replace with your list of sources
         sources = [
-            ("https://t.me/Radicalshitposting/", (44000, 47000)),
-            ("https://t.me/BictorsShitpost/", (39000, 42000)),
-            ("https://t.me/shitpost/", (53000, 56000))
+            ("https://t.me/Radicalshitposting/", (49000, 52000)),
+            ("https://t.me/BictorsShitpost/", (42000, 44000)),
+            ("https://t.me/shitpost/", (55000, 57000))
         ]
 
 
@@ -123,7 +129,7 @@ with sync_playwright() as p:
 
     def follow():
         # Will randomly pick one of these below sources and then follow their n last followers
-        follow_id_list = ["username1"]  # Replace with your list of usernames
+        follow_id_list = ["@Shitpost_Gate", "@ShitpostGate"]  # Replace with your list of usernames
 
         try:
             random_number = choice(range(len(follow_id_list)))
@@ -211,10 +217,7 @@ with sync_playwright() as p:
                     sleep(uniform(2, 5))
                     page.click("span:has-text('Log in')")
                     sleep(uniform(5, 10))
-
-                    # Check if login was successful
-                    if "/i/flow/login" not in page.url:
-                        break  # Exit the while loop for login attempts
+                    break  # Exit the loop if successfully logged in
 
                 except Exception as e:
                     # This will print the type of exception and its message
