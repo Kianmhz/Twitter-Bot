@@ -12,8 +12,7 @@ load_dotenv()
 
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s - %(levelname)s - %(message)s',
-                    handlers=[logging.StreamHandler(),
-                              logging.FileHandler("my_app.log")])
+                    handlers=[logging.StreamHandler()])
 
 USERNAME = os.getenv('MY_USERNAME')  # replace with your environment variable for username
 PASSWORD = os.getenv('MY_PASSWORD')  # replace with your environment variable for password
@@ -32,11 +31,6 @@ with sync_playwright() as p:
         headless=False,
     )
 
-    if os.path.exists('cookies.json'):
-        with open('cookies.json', 'r') as file:
-            cookies = json.load(file)
-            context.add_cookies(cookies)
-
     page = context.new_page()
 
     def post_tweet(file_path):
@@ -44,7 +38,7 @@ with sync_playwright() as p:
             # Navigate to the tweet composition page
             page.goto("https://twitter.com/compose/tweet")
             sleep(uniform(5, 10))
-            
+
         except Exception as e:
             # This will catch exceptions related to navigation
             logging.error(f"An error occurred while navigating to the tweet page: {e}")
@@ -89,7 +83,7 @@ with sync_playwright() as p:
                 # Check for image
                 picElement = page.query_selector('a.tgme_widget_message_photo_wrap')
                 if picElement:
-                    imageStyle = picElement.get_attribute('style')  
+                    imageStyle = picElement.get_attribute('style')
                     regexPattern = r"background-image:url\('(.*)'\)"
                     match = re.search(regexPattern, imageStyle)
 
@@ -123,12 +117,10 @@ with sync_playwright() as p:
                 logging.error(f"Attempt {attempts + 1} failed with error: {e}")
                 attempts += 1
 
-        logging.error("Failed to fetch a post after 3 attempts.") 
+        logging.error("Failed to fetch a post after 3 attempts.")
         return None
 
-
     def follow():
-        # Will randomly pick one of these below sources and then follow their n last followers
         follow_id_list = ["@Shitpost_Gate", "@ShitpostGate"]  # Replace with your list of usernames
 
         try:
@@ -141,8 +133,12 @@ with sync_playwright() as p:
 
         try:
             # Get all the follow buttons
-            follow_buttons = page.query_selector_all("div[role='button'][aria-label^='Follow @']")
-            num_to_follow = randint(1, 15)
+            follow_buttons = page.query_selector_all("button[aria-label^='Follow @'][role='button']")
+            if not follow_buttons:
+                logging.error("No follow buttons found on the page.")
+                return
+
+            num_to_follow = randint(1, min(15, len(follow_buttons)))
         except Exception as e:
             logging.error(f"Error querying the follow buttons: {e}")
             return
@@ -160,11 +156,10 @@ with sync_playwright() as p:
 
         logging.info(f"Followed {followed_count} accounts.")
 
-    
     def unfollow():
         try:
             # Navigate to the following page
-            page.goto("https://twitter.com/username/following")
+            page.goto("https://twitter.com/@BasedDailyDose/following")
             sleep(uniform(5, 10))
         except Exception as e:
             logging.error(f"Error navigating to the following page: {e}")
@@ -172,8 +167,12 @@ with sync_playwright() as p:
 
         try:
             # Get all the unfollow buttons
-            unfollow_buttons = page.query_selector_all("div[role='button'][aria-label^='Following @']")
-            num_to_unfollow = randint(50, 90)
+            unfollow_buttons = page.query_selector_all("button[role='button'][aria-label^='Following @']")
+            if not unfollow_buttons:
+                logging.error("No unfollow buttons found on the page.")
+                return
+
+            num_to_unfollow = randint(5, min(10, len(unfollow_buttons)))
         except Exception as e:
             logging.error(f"Error querying the unfollow buttons: {e}")
             return
@@ -185,7 +184,7 @@ with sync_playwright() as p:
             try:
                 unfollow_buttons[button].click()
                 sleep(uniform(2, 3))
-                page.wait_for_selector("div[role='button'] span:has-text('Unfollow')").click()
+                page.wait_for_selector("button[role='button'] span:has-text('Unfollow')").click()
                 sleep(uniform(2, 5))
                 unfollowed_count += 1
             except Exception as e:
@@ -204,7 +203,7 @@ with sync_playwright() as p:
         sleep(uniform(5, 10))
 
         # Check if need to login
-        if "/i/flow/login" in page.url:
+        if "/i/flow/login" or "/?logout"  in page.url:
             login_attempts = 0
 
             while login_attempts < MAX_LOGIN_ATTEMPTS:
@@ -217,7 +216,7 @@ with sync_playwright() as p:
                     sleep(uniform(2, 5))
                     page.click("span:has-text('Log in')")
                     sleep(uniform(5, 10))
-                    break  # Exit the loop if successfully logged in
+                    break
 
                 except Exception as e:
                     # This will print the type of exception and its message
@@ -234,46 +233,48 @@ with sync_playwright() as p:
                 logging.error("Reached max login attempts. Please check your credentials or the page structure.")
                 break  # Exit the main loop
 
-        # Define the total number of posts to make in the day
-        num_of_posts_today = randint(4, 6)
-
-        # Define the number of times to run the follow() function
-        follow_times_today = randint(0, 3)
-        follow_intervals = sorted([randint(0, 86400) for _ in range(follow_times_today)])
-        next_follow_index = 0  # To keep track of which follow_interval to check next
-
-        # Calculate the average interval
-        avg_interval = 86400 / num_of_posts_today
-
-        # Define the time we start the loop, to make sure we don't cross into the next day
-        start_time = time()
-
-        while num_of_posts_today > 0 and (time() - start_time) < 86400:
-
-            media_type = fetchPost()
-            if media_type == 'image':
-                post_tweet('image.jpg')
-                os.remove('image.jpg')  # Delete the image after posting
-            elif media_type == 'video':
-                post_tweet('video.mp4')
-                os.remove('video.mp4')  # Delete the video after posting
-
-            # Check if it's time for the next follow action
-            if next_follow_index < len(follow_intervals) and (time() - start_time) > follow_intervals[next_follow_index]:
-                follow()
-                next_follow_index += 1
-
-            # Randomize the sleep time based on the average interval with ±20% variation
-            sleep_time = randint(int(0.8 * avg_interval), int(1.2 * avg_interval))
-            sleep(sleep_time)
-
-            num_of_posts_today -= 1
-
-        # Check if a week has passed to unfollow
-        if time() - script_start_time >= 7 * 86400:
             unfollow()
-            script_start_time = time()  # Reset the timer after unfollowing
 
-        # Sleep until the next day starts
-        while (time() - start_time) < 86400:
-            sleep(600)  # Sleep for 10 minutes and then check again
+        # # Define the total number of posts to make in the day
+        # num_of_posts_today = randint(4, 6)
+
+        # # Define the number of times to run the follow() function
+        # follow_times_today = randint(0, 3)
+        # follow_intervals = sorted([randint(0, 86400) for _ in range(follow_times_today)])
+        # next_follow_index = 0  # To keep track of which follow_interval to check next
+
+        # # Calculate the average interval
+        # avg_interval = 86400 / num_of_posts_today
+
+        # # Define the time we start the loop, to make sure we don't cross into the next day
+        # start_time = time()
+
+        # while num_of_posts_today > 0 and (time() - start_time) < 86400:
+
+        #     media_type = fetchPost()
+        #     if media_type == 'image':
+        #         post_tweet('image.jpg')
+        #         os.remove('image.jpg')  # Delete the image after posting
+        #     elif media_type == 'video':
+        #         post_tweet('video.mp4')
+        #         os.remove('video.mp4')  # Delete the video after posting
+
+        #     # Check if it's time for the next follow action
+        #     if next_follow_index < len(follow_intervals) and (time() - start_time) > follow_intervals[next_follow_index]:
+        #         follow()
+        #         next_follow_index += 1
+
+        #     # Randomize the sleep time based on the average interval with ±20% variation
+        #     sleep_time = randint(int(0.8 * avg_interval), int(1.2 * avg_interval))
+        #     sleep(sleep_time)
+
+        #     num_of_posts_today -= 1
+
+        # # Check if a week has passed to unfollow
+        # if time() - script_start_time >= 7 * 86400:
+        #     unfollow()
+        #     script_start_time = time()  # Reset the timer after unfollowing
+
+        # # Sleep until the next day starts
+        # while (time() - start_time) < 86400:
+        #     sleep(600)  # Sleep for 10 minutes and then check again
