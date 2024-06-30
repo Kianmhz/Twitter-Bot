@@ -13,8 +13,8 @@ logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s - %(levelname)s - %(message)s',
                     handlers=[logging.StreamHandler()])
 
-USERNAME = os.getenv('USERNAME')  # replace with your environment variable for username
-PASSWORD = os.getenv('PASSWORD')  # replace with your environment variable for password
+USERNAME = os.getenv('MY_USERNAME')  # replace with your environment variable for username
+PASSWORD = os.getenv('MY_PASSWORD')  # replace with your environment variable for password
 PROFILE_PATH = os.getenv('PROFILE_PATH')  # replace with your environment variable for profile path
 CHROME_PATH = os.getenv('CHROME_PATH')  # replace with your environment variable for chrome path
 
@@ -199,7 +199,7 @@ with sync_playwright() as p:
         sleep(uniform(5, 10))
 
         # Check if need to login
-        if "/i/flow/login" or "/?logout"  in page.url:
+        if "/i/flow/login" in page.url or "/?logout" in page.url:
             login_attempts = 0
 
             while login_attempts < MAX_LOGIN_ATTEMPTS:
