@@ -1,6 +1,5 @@
 from playwright.sync_api import sync_playwright
 import os
-import json
 from time import sleep, time
 import requests
 from random import choice, randint, uniform
@@ -14,10 +13,10 @@ logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s - %(levelname)s - %(message)s',
                     handlers=[logging.StreamHandler()])
 
-USERNAME = os.getenv('MY_USERNAME')  # replace with your environment variable for username
-PASSWORD = os.getenv('MY_PASSWORD')  # replace with your environment variable for password
-PROFILE_PATH = os.getenv('MY_PROFILE_PATH')  # replace with your environment variable for profile path
-CHROME_PATH = os.getenv('MY_CHROME_PATH')  # replace with your environment variable for chrome path
+USERNAME = os.getenv('USERNAME')  # replace with your environment variable for username
+PASSWORD = os.getenv('PASSWORD')  # replace with your environment variable for password
+PROFILE_PATH = os.getenv('PROFILE_PATH')  # replace with your environment variable for profile path
+CHROME_PATH = os.getenv('CHROME_PATH')  # replace with your environment variable for chrome path
 
 with sync_playwright() as p:
     browser_type = p.chromium
@@ -66,9 +65,6 @@ with sync_playwright() as p:
 
         # List of sources to fetch posts from, replace with your list of sources
         sources = [
-            ("https://t.me/Radicalshitposting/", (49000, 52000)),
-            ("https://t.me/BictorsShitpost/", (42000, 44000)),
-            ("https://t.me/shitpost/", (55000, 57000))
         ]
 
 
@@ -121,7 +117,7 @@ with sync_playwright() as p:
         return None
 
     def follow():
-        follow_id_list = ["@Shitpost_Gate", "@ShitpostGate"]  # Replace with your list of usernames
+        follow_id_list = []  # Replace with your list of usernames
 
         try:
             random_number = choice(range(len(follow_id_list)))
@@ -159,7 +155,7 @@ with sync_playwright() as p:
     def unfollow():
         try:
             # Navigate to the following page
-            page.goto("https://twitter.com/@BasedDailyDose/following")
+            page.goto("https://twitter.com/@/following")
             sleep(uniform(5, 10))
         except Exception as e:
             logging.error(f"Error navigating to the following page: {e}")
@@ -233,48 +229,46 @@ with sync_playwright() as p:
                 logging.error("Reached max login attempts. Please check your credentials or the page structure.")
                 break  # Exit the main loop
 
+        # Define the total number of posts to make in the day
+        num_of_posts_today = randint(4, 6)
+
+        # Define the number of times to run the follow() function
+        follow_times_today = randint(0, 3)
+        follow_intervals = sorted([randint(0, 86400) for _ in range(follow_times_today)])
+        next_follow_index = 0  # To keep track of which follow_interval to check next
+
+        # Calculate the average interval
+        avg_interval = 86400 / num_of_posts_today
+
+        # Define the time we start the loop, to make sure we don't cross into the next day
+        start_time = time()
+
+        while num_of_posts_today > 0 and (time() - start_time) < 86400:
+
+            media_type = fetchPost()
+            if media_type == 'image':
+                post_tweet('image.jpg')
+                os.remove('image.jpg')  # Delete the image after posting
+            elif media_type == 'video':
+                post_tweet('video.mp4')
+                os.remove('video.mp4')  # Delete the video after posting
+
+            # Check if it's time for the next follow action
+            if next_follow_index < len(follow_intervals) and (time() - start_time) > follow_intervals[next_follow_index]:
+                follow()
+                next_follow_index += 1
+
+            # Randomize the sleep time based on the average interval with ±20% variation
+            sleep_time = randint(int(0.8 * avg_interval), int(1.2 * avg_interval))
+            sleep(sleep_time)
+
+            num_of_posts_today -= 1
+
+        # Check if a week has passed to unfollow
+        if time() - script_start_time >= 7 * 86400:
             unfollow()
+            script_start_time = time()  # Reset the timer after unfollowing
 
-        # # Define the total number of posts to make in the day
-        # num_of_posts_today = randint(4, 6)
-
-        # # Define the number of times to run the follow() function
-        # follow_times_today = randint(0, 3)
-        # follow_intervals = sorted([randint(0, 86400) for _ in range(follow_times_today)])
-        # next_follow_index = 0  # To keep track of which follow_interval to check next
-
-        # # Calculate the average interval
-        # avg_interval = 86400 / num_of_posts_today
-
-        # # Define the time we start the loop, to make sure we don't cross into the next day
-        # start_time = time()
-
-        # while num_of_posts_today > 0 and (time() - start_time) < 86400:
-
-        #     media_type = fetchPost()
-        #     if media_type == 'image':
-        #         post_tweet('image.jpg')
-        #         os.remove('image.jpg')  # Delete the image after posting
-        #     elif media_type == 'video':
-        #         post_tweet('video.mp4')
-        #         os.remove('video.mp4')  # Delete the video after posting
-
-        #     # Check if it's time for the next follow action
-        #     if next_follow_index < len(follow_intervals) and (time() - start_time) > follow_intervals[next_follow_index]:
-        #         follow()
-        #         next_follow_index += 1
-
-        #     # Randomize the sleep time based on the average interval with ±20% variation
-        #     sleep_time = randint(int(0.8 * avg_interval), int(1.2 * avg_interval))
-        #     sleep(sleep_time)
-
-        #     num_of_posts_today -= 1
-
-        # # Check if a week has passed to unfollow
-        # if time() - script_start_time >= 7 * 86400:
-        #     unfollow()
-        #     script_start_time = time()  # Reset the timer after unfollowing
-
-        # # Sleep until the next day starts
-        # while (time() - start_time) < 86400:
-        #     sleep(600)  # Sleep for 10 minutes and then check again
+        # Sleep until the next day starts
+        while (time() - start_time) < 86400:
+            sleep(600)  # Sleep for 10 minutes and then check again
